@@ -1,5 +1,5 @@
-// Phrase -> video mapping for SignBridge.
-// Replace the `video` URLs with your own MP4s in /public/videos/ when ready.
+// Phrase -> video mapping for Wamu.
+// Each phrase maps to a sign language video in /public/videos/
 // Keywords help with flexible matching (any keyword match counts as a hit).
 
 export type SignMapping = {
@@ -10,66 +10,42 @@ export type SignMapping = {
   poster?: string;
 };
 
-// Free, hot-linkable sample MP4s so the demo works out of the box.
-const SAMPLE = {
-  wave: "https://cdn.pixabay.com/video/2024/03/17/204058-924698132_large.mp4",
-  thanks: "https://cdn.pixabay.com/video/2023/10/06/184093-872215559_large.mp4",
-  yes: "https://cdn.pixabay.com/video/2022/11/07/138442-768621408_large.mp4",
-  no: "https://cdn.pixabay.com/video/2021/04/19/71336-540090231_large.mp4",
-  love: "https://cdn.pixabay.com/video/2022/11/24/140511-774754031_large.mp4",
-  help: "https://cdn.pixabay.com/video/2023/05/23/164671-829238615_large.mp4",
-  please: "https://cdn.pixabay.com/video/2022/12/01/141387-777964304_large.mp4",
-  sorry: "https://cdn.pixabay.com/video/2021/08/30/86867-595058849_large.mp4",
-};
-
 export const signMappings: SignMapping[] = [
   {
-    id: "hello",
-    text: "Hello",
-    keywords: ["hello", "hi", "hey", "greetings", "howdy", "hola"],
-    video: SAMPLE.wave,
+    id: "go-away",
+    text: "Go away",
+    keywords: ["go away", "leave", "go", "away", "get out"],
+    video: "/videos/go away.mp4",
   },
   {
-    id: "thank-you",
-    text: "Thank you",
-    keywords: ["thank", "thanks", "thank you", "appreciate", "grateful"],
-    video: SAMPLE.thanks,
+    id: "how-was-your-day",
+    text: "How was your day",
+    keywords: ["how was your day", "how was day", "your day", "how are you", "how's your day"],
+    video: "/videos/how was your day.mp4",
   },
   {
-    id: "yes",
-    text: "Yes",
-    keywords: ["yes", "yeah", "yep", "sure", "of course", "affirmative"],
-    video: SAMPLE.yes,
+    id: "i-am-hungry",
+    text: "I am hungry",
+    keywords: ["i am hungry", "hungry", "i'm hungry", "starving", "need food"],
+    video: "/videos/i am hungry.mp4",
   },
   {
-    id: "no",
-    text: "No",
-    keywords: ["no", "nope", "nah", "negative", "never"],
-    video: SAMPLE.no,
+    id: "lets-go-for-a-walk",
+    text: "Let's go for a walk",
+    keywords: ["let's go for a walk", "go for a walk", "walk", "lets walk", "go walking"],
+    video: "/videos/lets go for a walk.mp4",
   },
   {
-    id: "i-love-you",
-    text: "I love you",
-    keywords: ["love", "i love you", "love you", "adore"],
-    video: SAMPLE.love,
+    id: "please-help",
+    text: "Please help",
+    keywords: ["please help", "help", "help me", "please", "need help", "assist"],
+    video: "/videos/please help.mp4",
   },
   {
-    id: "help",
-    text: "Help",
-    keywords: ["help", "assist", "support", "aid", "need help"],
-    video: SAMPLE.help,
-  },
-  {
-    id: "please",
-    text: "Please",
-    keywords: ["please", "kindly", "pls"],
-    video: SAMPLE.please,
-  },
-  {
-    id: "sorry",
-    text: "Sorry",
-    keywords: ["sorry", "apologies", "apologize", "my bad", "forgive"],
-    video: SAMPLE.sorry,
+    id: "what-is-your-name",
+    text: "What is your name",
+    keywords: ["what is your name", "your name", "what's your name", "name", "who are you"],
+    video: "/videos/what is your name.mp4",
   },
 ];
 

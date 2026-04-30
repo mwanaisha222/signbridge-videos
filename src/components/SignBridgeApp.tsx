@@ -82,7 +82,10 @@ export function SignBridgeApp() {
           <div className="size-10 bg-moss rounded-full flex items-center justify-center shadow-stone">
             <div className="size-4 bg-stone-base rounded-sm rotate-45" />
           </div>
-          <span className="text-xl font-serif italic tracking-tight">SignBridge</span>
+          <div className="flex flex-col">
+            <span className="text-xl font-serif italic tracking-tight leading-tight">Wamu</span>
+            <span className="text-[10px] font-medium text-muted-foreground tracking-wide">better together</span>
+          </div>
         </div>
         <div className="hidden sm:flex gap-6 items-center text-sm font-medium text-muted-foreground">
           <span>Inclusive translator</span>
@@ -99,7 +102,7 @@ export function SignBridgeApp() {
       <main className="w-full max-w-5xl bg-stone-surface p-4 sm:p-6 rounded-[2.5rem] sm:rounded-[3.5rem] shadow-stone flex flex-col gap-5 sm:gap-6">
         {/* Video stage */}
         <div className="relative bg-stone-deep/30 rounded-[1.75rem] sm:rounded-[2.5rem] overflow-hidden shadow-inset-stone">
-          <div className="aspect-video w-full relative">
+          <div className="aspect-video w-full relative overflow-hidden">
             {match ? (
               <video
                 key={match.id}
@@ -109,7 +112,7 @@ export function SignBridgeApp() {
                 autoPlay
                 loop
                 muted
-                className="w-full h-full object-cover transition-opacity duration-500 opacity-100"
+                className="absolute top-[-8%] left-0 w-full h-[108%] object-contain transition-opacity duration-500 opacity-100"
               />
             ) : (
               <div className="w-full h-full flex items-center justify-center">
@@ -261,7 +264,7 @@ export function SignBridgeApp() {
       </section>
 
       <footer className="mt-12 sm:mt-20 mb-6 opacity-40 text-[10px] font-medium uppercase tracking-[0.2em]">
-        Handcrafted for inclusion · SignBridge
+        Handcrafted for inclusion · Wamu
       </footer>
     </div>
   );
@@ -357,11 +360,10 @@ function EmptyStage({ status }: { status: Status }) {
   return (
     <div className="text-center px-6 max-w-md">
       <p className="font-serif italic text-3xl sm:text-4xl mb-3 leading-tight">
-        Translate words into signs.
+        Bridging hearts through signs.
       </p>
       <p className="text-sm sm:text-base text-muted-foreground">
-        Type a phrase or tap the microphone to begin. Your sign video will play
-        here.
+        Type a phrase or tap the microphone to begin. Together, we break barriers and build understanding.
       </p>
     </div>
   );
