@@ -9,7 +9,7 @@ function Index() {
   return (
     <>
       <h1 className="sr-only">
-        SignBridge — Translate text and voice into sign language videos
+        Wamu — Bridging hearts through signs
       </h1>
       <SignBridgeApp />
     </>
