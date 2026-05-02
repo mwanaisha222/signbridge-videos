@@ -1,15 +1,16 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { findBestMatch, signMappings, type SignMapping } from "@/data/signMappings";
+import { useEffect, useRef, useState } from "react";
+import { getNextSignMapping, signMappings, type SignMapping } from "@/data/signMappings";
 import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
 
-type Status = "idle" | "loading" | "playing" | "no-match";
+type Status = "idle" | "loading" | "playing";
 
 export function SignBridgeApp() {
   const [input, setInput] = useState("");
   const [match, setMatch] = useState<SignMapping | null>(null);
   const [status, setStatus] = useState<Status>("idle");
   const [showSubtitles, setShowSubtitles] = useState(true);
-  const [analytics, setAnalytics] = useState<Record<string, number>>({});
+  const [subtitleText, setSubtitleText] = useState("");
+  const [nextVideoIndex, setNextVideoIndex] = useState(0);
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
   const speech = useSpeechRecognition({
@@ -19,39 +20,34 @@ export function SignBridgeApp() {
     },
   });
 
-  const recordHit = (id: string) => {
-    setAnalytics((a) => ({ ...a, [id]: (a[id] ?? 0) + 1 }));
-  };
-
   const handleTranslate = (raw?: string) => {
     const value = (raw ?? input).trim();
     if (!value) return;
+
     setStatus("loading");
-    // Tiny delay so the loader is perceivable on instant matches
+    setSubtitleText(value);
+
+    // Tiny delay so the loader is perceivable on instant matches.
     window.setTimeout(() => {
-      const m = findBestMatch(value);
-      if (m) {
-        setMatch(m);
-        setStatus("playing");
-        recordHit(m.id);
-      } else {
-        setMatch(null);
-        setStatus("no-match");
-      }
+      const nextMapping = getNextSignMapping(nextVideoIndex);
+      setMatch(nextMapping);
+      setStatus("playing");
+      setNextVideoIndex((current) => (current + 1) % signMappings.length);
     }, 280);
   };
 
   const handleClear = () => {
     setInput("");
     setMatch(null);
+    setSubtitleText("");
     setStatus("idle");
     speech.stop();
   };
 
-  // Auto-load video when match changes
   useEffect(() => {
     const v = videoRef.current;
     if (!v || !match) return;
+
     v.load();
     const playPromise = v.play();
     if (playPromise && typeof playPromise.catch === "function") {
@@ -59,24 +55,10 @@ export function SignBridgeApp() {
     }
   }, [match]);
 
-  const topPhrases = useMemo(
-    () =>
-      Object.entries(analytics)
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 4)
-        .map(([id, count]) => ({
-          mapping: signMappings.find((m) => m.id === id)!,
-          count,
-        }))
-        .filter((x) => x.mapping),
-    [analytics],
-  );
-
   const liveText = speech.listening && speech.interim ? speech.interim : input;
 
   return (
     <div className="min-h-dvh bg-background text-foreground antialiased flex flex-col items-center p-4 sm:p-8">
-      {/* Nav */}
       <nav className="w-full max-w-5xl flex justify-between items-center mb-8 sm:mb-12">
         <div className="flex items-center gap-3">
           <div className="size-10 bg-moss rounded-full flex items-center justify-center shadow-stone">
@@ -98,9 +80,7 @@ export function SignBridgeApp() {
         </div>
       </nav>
 
-      {/* Main vessel */}
       <main className="w-full max-w-5xl bg-stone-surface p-4 sm:p-6 rounded-[2.5rem] sm:rounded-[3.5rem] shadow-stone flex flex-col gap-5 sm:gap-6">
-        {/* Video stage */}
         <div className="relative bg-stone-deep/30 rounded-[1.75rem] sm:rounded-[2.5rem] overflow-hidden shadow-inset-stone">
           <div className="aspect-video w-full relative overflow-hidden">
             {match ? (
@@ -120,18 +100,16 @@ export function SignBridgeApp() {
               </div>
             )}
 
-            {/* Status badge */}
             <div className="absolute top-4 sm:top-6 right-4 sm:right-6">
               <StatusBadge status={status} listening={speech.listening} />
             </div>
 
-            {/* Subtitle overlay */}
-            {match && showSubtitles && (
+            {match && showSubtitles && subtitleText && (
               <div className="absolute bottom-4 sm:bottom-6 left-0 right-0 px-4 sm:px-10">
                 <div className="bg-stone-base/90 backdrop-blur-md px-5 sm:px-7 py-3 sm:py-4 rounded-[1.5rem] sm:rounded-[2rem] shadow-stone border border-white/40 mx-auto max-w-3xl">
                   <p className="text-base sm:text-xl font-medium leading-relaxed tracking-tight text-center">
-                    <span className="opacity-40 mr-2">Showing:</span>
-                    {match.text}
+                    <span className="opacity-40 mr-2">Subtitle:</span>
+                    {subtitleText}
                   </p>
                 </div>
               </div>
@@ -139,7 +117,6 @@ export function SignBridgeApp() {
           </div>
         </div>
 
-        {/* Controls */}
         <div className="flex flex-col sm:flex-row sm:items-end gap-4 sm:gap-6 p-1 sm:p-2">
           <div className="flex-1">
             <label
@@ -157,7 +134,7 @@ export function SignBridgeApp() {
                 onKeyDown={(e) => {
                   if (e.key === "Enter") handleTranslate();
                 }}
-                placeholder="e.g. hello, thank you, please…"
+                placeholder="Type or say any sentence to play the next video..."
                 className="w-full bg-stone-base h-16 sm:h-20 pl-6 sm:pl-8 pr-36 sm:pr-44 rounded-full border-none focus:outline-none focus:ring-2 focus:ring-moss/30 text-base sm:text-lg transition-all placeholder:text-earth/30 shadow-inset-stone"
               />
               <div className="absolute right-2 sm:right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
@@ -180,7 +157,6 @@ export function SignBridgeApp() {
             </div>
           </div>
 
-          {/* Mic */}
           <div className="shrink-0 flex sm:flex-col items-center gap-3 sm:gap-2">
             <button
               onClick={() => (speech.listening ? speech.stop() : speech.start())}
@@ -201,70 +177,8 @@ export function SignBridgeApp() {
         </div>
       </main>
 
-      {/* Secondary panels */}
-      <section className="w-full max-w-5xl grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 mt-8 sm:mt-12">
-        <div className="bg-stone-surface/60 p-6 rounded-[1.75rem] sm:rounded-[2rem] border border-stone-deep/40">
-          <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-4">
-            Try a phrase
-          </h3>
-          <div className="flex flex-wrap gap-2">
-            {signMappings.slice(0, 6).map((m) => (
-              <button
-                key={m.id}
-                onClick={() => {
-                  setInput(m.text);
-                  handleTranslate(m.text);
-                }}
-                className="px-3 py-1.5 text-sm rounded-full bg-stone-base hover:bg-moss hover:text-stone-base transition-colors border border-stone-deep/40"
-              >
-                {m.text}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="bg-stone-surface/60 p-6 rounded-[1.75rem] sm:rounded-[2rem] border border-stone-deep/40">
-          <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-4">
-            Detected phrase
-          </h3>
-          <p className="text-lg font-medium min-h-7">
-            {match ? match.text : status === "no-match" ? "—" : "Awaiting input"}
-          </p>
-          <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-            {status === "no-match"
-              ? "Sorry, no sign video found for this phrase."
-              : "We match flexibly — slight variations in phrasing still work."}
-          </p>
-        </div>
-
-        <div className="bg-stone-surface/60 p-6 rounded-[1.75rem] sm:rounded-[2rem] border border-stone-deep/40">
-          <h3 className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-4">
-            Most searched
-          </h3>
-          {topPhrases.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              Translate a few phrases to see your top results.
-            </p>
-          ) : (
-            <ul className="space-y-2">
-              {topPhrases.map(({ mapping, count }) => (
-                <li
-                  key={mapping.id}
-                  className="flex items-center justify-between text-sm"
-                >
-                  <span className="font-medium">{mapping.text}</span>
-                  <span className="tabular-nums text-muted-foreground">
-                    {count}×
-                  </span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      </section>
-
       <footer className="mt-12 sm:mt-20 mb-6 opacity-40 text-[10px] font-medium uppercase tracking-[0.2em]">
-        Handcrafted for inclusion · Wamu
+        Handcrafted for inclusion | Wamu
       </footer>
     </div>
   );
@@ -287,15 +201,12 @@ function StatusBadge({
   if (status === "loading") {
     return (
       <Badge color="moss" pulse>
-        Matching
+        Loading
       </Badge>
     );
   }
   if (status === "playing") {
     return <Badge color="moss">Playing</Badge>;
-  }
-  if (status === "no-match") {
-    return <Badge color="muted">No match</Badge>;
   }
   return <Badge color="muted">Ready</Badge>;
 }
@@ -338,22 +249,7 @@ function EmptyStage({ status }: { status: Status }) {
           <span className="size-2.5 rounded-full bg-moss animate-bounce [animation-delay:-0.15s]" />
           <span className="size-2.5 rounded-full bg-moss animate-bounce" />
         </div>
-        <p className="text-xs font-bold uppercase tracking-widest">
-          Finding the right sign
-        </p>
-      </div>
-    );
-  }
-  if (status === "no-match") {
-    return (
-      <div className="text-center px-6 max-w-sm">
-        <p className="font-serif italic text-2xl sm:text-3xl mb-2">
-          No match found
-        </p>
-        <p className="text-sm text-muted-foreground">
-          Sorry, no sign video found for this phrase. Try another wording or pick a
-          suggestion below.
-        </p>
+        <p className="text-xs font-bold uppercase tracking-widest">Loading the next sign</p>
       </div>
     );
   }
@@ -363,7 +259,7 @@ function EmptyStage({ status }: { status: Status }) {
         Bridging hearts through signs.
       </p>
       <p className="text-sm sm:text-base text-muted-foreground">
-        Type a phrase or tap the microphone to begin. Together, we break barriers and build understanding.
+        Type a phrase or tap the microphone to begin. Each new phrase plays the next video in the 1 to 6 sequence.
       </p>
     </div>
   );
