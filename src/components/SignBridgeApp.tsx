@@ -1,14 +1,21 @@
 import { useEffect, useRef, useState } from "react";
 import {
   defaultLoopMappings,
+  findSignMappingByPhrase,
   getNextSignMapping,
-  longStatementMapping,
   type SignMapping,
 } from "@/data/signMappings";
 import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
 
 type Status = "idle" | "loading" | "playing";
-const LONG_STATEMENT_WORD_THRESHOLD = 7;
+
+const TRY_STATEMENTS = [
+  "am feeling hungry",
+  "please wait a moment",
+  "where have i packed my car",
+];
+
+const COMMON_STATEMENTS = ["hello what is your name", "stay away from me"];
 
 export function SignBridgeApp() {
   const [input, setInput] = useState("");
@@ -35,13 +42,23 @@ export function SignBridgeApp() {
 
     // Tiny delay so the loader is perceivable on instant matches.
     window.setTimeout(() => {
-      const isLongStatement = value.split(/\s+/).filter(Boolean).length >= LONG_STATEMENT_WORD_THRESHOLD;
-      const nextMapping = isLongStatement ? longStatementMapping : getNextSignMapping(nextVideoIndex);
+      // Try a normalized exact match against the known statements first.
+      const exactMatch = findSignMappingByPhrase(value);
+      if (exactMatch) {
+        setMatch(exactMatch);
+        setStatus("playing");
+        // If the chosen mapping is in the default loop, advance the index so rotation continues predictably.
+        const loopIndex = defaultLoopMappings.findIndex((m) => m.id === exactMatch.id);
+        if (loopIndex >= 0) {
+          setNextVideoIndex((loopIndex + 1) % defaultLoopMappings.length);
+        }
+        return;
+      }
+
+      const nextMapping = getNextSignMapping(nextVideoIndex);
       setMatch(nextMapping);
       setStatus("playing");
-      if (!isLongStatement) {
-        setNextVideoIndex((current) => (current + 1) % defaultLoopMappings.length);
-      }
+      setNextVideoIndex((current) => (current + 1) % defaultLoopMappings.length);
     }, 280);
   };
 
@@ -143,7 +160,7 @@ export function SignBridgeApp() {
                 onKeyDown={(e) => {
                   if (e.key === "Enter") handleTranslate();
                 }}
-                placeholder="Type or say any sentence to play the next video..."
+                placeholder=""
                 className="w-full bg-stone-base h-16 sm:h-20 pl-6 sm:pl-8 pr-36 sm:pr-44 rounded-full border-none focus:outline-none focus:ring-2 focus:ring-moss/30 text-base sm:text-lg transition-all placeholder:text-earth/30 shadow-inset-stone"
               />
               <div className="absolute right-2 sm:right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
@@ -165,6 +182,7 @@ export function SignBridgeApp() {
               </div>
             </div>
           </div>
+          
 
           <div className="shrink-0 flex sm:flex-col items-center gap-3 sm:gap-2">
             <button
@@ -182,6 +200,48 @@ export function SignBridgeApp() {
             <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground sm:mt-1">
               {speech.listening ? "Listening" : speech.supported ? "Voice" : "N/A"}
             </p>
+          </div>
+        </div>
+
+        <div className="px-3 sm:px-4 pb-2 sm:pb-3">
+          <div className="rounded-[1.5rem] sm:rounded-[2rem] bg-stone-base/70 border border-white/40 px-5 sm:px-6 py-4 sm:py-5">
+            <p className="text-[10px] sm:text-xs font-bold uppercase tracking-widest text-muted-foreground mb-3">
+              Try One Of These Statements
+            </p>
+            <div className="flex flex-wrap gap-2 mb-4">
+              {TRY_STATEMENTS.map((statement) => (
+                <button
+                  key={statement}
+                  type="button"
+                  onClick={() => {
+                    setInput(statement);
+                    handleTranslate(statement);
+                  }}
+                  className="rounded-full bg-stone-surface px-4 py-2 text-sm text-foreground shadow-inset-stone hover:bg-stone-deep/40 transition-colors"
+                >
+                  {statement}
+                </button>
+              ))}
+            </div>
+
+            <p className="text-[10px] sm:text-xs font-bold uppercase tracking-widest text-muted-foreground mb-3">
+              Commonly Searched Statements
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {COMMON_STATEMENTS.map((statement) => (
+                <button
+                  key={statement}
+                  type="button"
+                  onClick={() => {
+                    setInput(statement);
+                    handleTranslate(statement);
+                  }}
+                  className="rounded-full bg-stone-surface px-4 py-2 text-sm text-foreground shadow-inset-stone hover:bg-stone-deep/40 transition-colors"
+                >
+                  {statement}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       </main>
@@ -267,9 +327,7 @@ function EmptyStage({ status }: { status: Status }) {
       <p className="font-serif italic text-3xl sm:text-4xl mb-3 leading-tight">
         Bridging hearts through signs.
       </p>
-      <p className="text-sm sm:text-base text-muted-foreground">
-        Type a phrase or tap the microphone to begin. Short phrases rotate through videos 1, 3, 4, and 5, while longer statements play video 6.
-      </p>
+      
     </div>
   );
 }
