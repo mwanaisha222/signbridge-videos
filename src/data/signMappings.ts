@@ -1,5 +1,6 @@
 // Rotating video playlist for Wamu.
-// Each new typed or spoken phrase advances to the next video in /public/videos/.
+// Short phrases advance through the standard videos in /public/videos/.
+// Longer phrases use the extended video 6.
 
 export type SignMapping = {
   id: string;
@@ -13,11 +14,6 @@ export const signMappings: SignMapping[] = [
     id: "video-1",
     text: "Video 1",
     video: "/videos/1.mp4",
-  },
-  {
-    id: "video-2",
-    text: "Video 2",
-    video: "/videos/2.mp4",
   },
   {
     id: "video-3",
@@ -41,6 +37,17 @@ export const signMappings: SignMapping[] = [
   },
 ];
 
+const defaultLoopIds = ["video-1", "video-3", "video-4", "video-5"] as const;
+
+export const defaultLoopMappings = defaultLoopIds
+  .map((id) => signMappings.find((mapping) => mapping.id === id))
+  .filter((mapping): mapping is SignMapping => Boolean(mapping));
+
+export const longStatementMapping =
+  signMappings.find((mapping) => mapping.id === "video-6") ?? signMappings[signMappings.length - 1];
+
 export function getNextSignMapping(index: number): SignMapping {
-  return signMappings[((index % signMappings.length) + signMappings.length) % signMappings.length];
+  return defaultLoopMappings[
+    ((index % defaultLoopMappings.length) + defaultLoopMappings.length) % defaultLoopMappings.length
+  ];
 }

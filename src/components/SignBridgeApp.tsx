@@ -1,8 +1,14 @@
 import { useEffect, useRef, useState } from "react";
-import { getNextSignMapping, signMappings, type SignMapping } from "@/data/signMappings";
+import {
+  defaultLoopMappings,
+  getNextSignMapping,
+  longStatementMapping,
+  type SignMapping,
+} from "@/data/signMappings";
 import { useSpeechRecognition } from "@/hooks/useSpeechRecognition";
 
 type Status = "idle" | "loading" | "playing";
+const LONG_STATEMENT_WORD_THRESHOLD = 7;
 
 export function SignBridgeApp() {
   const [input, setInput] = useState("");
@@ -29,10 +35,13 @@ export function SignBridgeApp() {
 
     // Tiny delay so the loader is perceivable on instant matches.
     window.setTimeout(() => {
-      const nextMapping = getNextSignMapping(nextVideoIndex);
+      const isLongStatement = value.split(/\s+/).filter(Boolean).length >= LONG_STATEMENT_WORD_THRESHOLD;
+      const nextMapping = isLongStatement ? longStatementMapping : getNextSignMapping(nextVideoIndex);
       setMatch(nextMapping);
       setStatus("playing");
-      setNextVideoIndex((current) => (current + 1) % signMappings.length);
+      if (!isLongStatement) {
+        setNextVideoIndex((current) => (current + 1) % defaultLoopMappings.length);
+      }
     }, 280);
   };
 
@@ -92,7 +101,7 @@ export function SignBridgeApp() {
                 autoPlay
                 loop
                 muted
-                className="absolute top-[-8%] left-0 w-full h-[108%] object-contain transition-opacity duration-500 opacity-100"
+                className="absolute top-[2%] left-0 w-full h-[96%] object-contain object-top transition-opacity duration-500 opacity-100"
               />
             ) : (
               <div className="w-full h-full flex items-center justify-center">
@@ -259,7 +268,7 @@ function EmptyStage({ status }: { status: Status }) {
         Bridging hearts through signs.
       </p>
       <p className="text-sm sm:text-base text-muted-foreground">
-        Type a phrase or tap the microphone to begin. Each new phrase plays the next video in the 1 to 6 sequence.
+        Type a phrase or tap the microphone to begin. Short phrases rotate through videos 1, 3, 4, and 5, while longer statements play video 6.
       </p>
     </div>
   );
